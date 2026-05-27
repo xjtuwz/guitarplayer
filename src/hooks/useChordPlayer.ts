@@ -127,5 +127,26 @@ export function useChordPlayer() {
     [getAudioContext]
   )
 
-  return { playChord, playString }
+  const playScale = useCallback(
+    (notes: { stringIndex: number; fret: number }[], noteInterval: number = 0.35) => {
+      if (notes.length === 0) return
+
+      const ctx = getAudioContext()
+      const gainNode = ctx.createGain()
+      gainNode.gain.setValueAtTime(0.5, ctx.currentTime)
+      gainNode.connect(ctx.destination)
+
+      const now = ctx.currentTime + 0.02
+      notes.forEach((note, i) => {
+        const freq = note.fret === 0
+          ? OPEN_STRING_FREQS[note.stringIndex]
+          : getFrequency(note.stringIndex, note.fret)
+        if (freq <= 0) return
+        playPluckedString(ctx, gainNode, freq, now + i * noteInterval, 1.2)
+      })
+    },
+    [getAudioContext]
+  )
+
+  return { playChord, playString, playScale }
 }

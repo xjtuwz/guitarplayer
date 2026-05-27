@@ -7,7 +7,7 @@ import { ChordDiagram } from "./ChordDiagram"
 import { Tablature } from "./Tablature"
 import { PitchPractice } from "./PitchPractice"
 import { useChordPlayer } from "@/hooks/useChordPlayer"
-import { Clock, Music, AudioLines, Guitar, Activity, Volume2 } from "lucide-react"
+import { Clock, Music, AudioLines, Guitar, Activity, Volume2, Play } from "lucide-react"
 
 type ToolTab = "metronome" | "chords" | "scales" | "pitch"
 
@@ -22,22 +22,134 @@ const commonChords = [
   { name: "F", positions: [1, 3, 3, 2, 1, 1] as (number | null)[], barre: { fret: 1, from: 0, to: 5 } },
 ]
 
-const scalePattern = {
-  name: "A小调五声音阶",
-  strings: [
-    [null, null, null, null, null, null],
-    [null, null, null, null, null, null],
-    [null, null, null, null, null, null],
-    [null, null, null, null, null, null],
-    [null, null, null, null, null, null],
-    [null, null, null, null, null, null],
-  ] as (number | null)[][],
+interface ScaleConfig {
+  name: string
+  key: string
+  notes: string
+  description: string
+  strings: (number | null)[][]
+  // Ordered notes for playback (string index 0-5, fret)
+  playNotes: { stringIndex: number; fret: number }[]
 }
+
+const scales: ScaleConfig[] = [
+  {
+    name: "A小调五声音阶",
+    key: "A",
+    notes: "A C D E G",
+    description: "最常用的吉他音阶，摇滚、布鲁斯和流行Solo的基础。五声音阶省略了4级和7级音，不容易弹错。",
+    strings: [
+      [5, 8, null, null, null, null],
+      [5, 7, null, null, null, null],
+      [5, 7, null, null, null, null],
+      [5, 7, null, null, null, null],
+      [5, 8, null, null, null, null],
+      [5, 8, null, null, null, null],
+    ],
+    playNotes: [
+      { stringIndex: 5, fret: 5 }, { stringIndex: 5, fret: 8 },
+      { stringIndex: 4, fret: 5 }, { stringIndex: 4, fret: 8 },
+      { stringIndex: 3, fret: 5 }, { stringIndex: 3, fret: 7 },
+      { stringIndex: 2, fret: 5 }, { stringIndex: 2, fret: 7 },
+      { stringIndex: 1, fret: 5 }, { stringIndex: 1, fret: 7 },
+      { stringIndex: 0, fret: 5 }, { stringIndex: 0, fret: 8 },
+    ],
+  },
+  {
+    name: "E小调五声音阶",
+    key: "E",
+    notes: "E G A B D",
+    description: "电吉他最经典的小调音阶，开放位置极易弹奏，大量经典Riff基于此音阶。",
+    strings: [
+      [0, 3, null, null, null, null],
+      [0, 2, null, null, null, null],
+      [0, 2, null, null, null, null],
+      [0, 2, null, null, null, null],
+      [0, 3, null, null, null, null],
+      [0, 3, null, null, null, null],
+    ],
+    playNotes: [
+      { stringIndex: 5, fret: 0 }, { stringIndex: 5, fret: 3 },
+      { stringIndex: 4, fret: 0 }, { stringIndex: 4, fret: 2 },
+      { stringIndex: 3, fret: 0 }, { stringIndex: 3, fret: 2 },
+      { stringIndex: 2, fret: 0 }, { stringIndex: 2, fret: 2 },
+      { stringIndex: 1, fret: 0 }, { stringIndex: 1, fret: 3 },
+      { stringIndex: 0, fret: 0 }, { stringIndex: 0, fret: 3 },
+    ],
+  },
+  {
+    name: "G小调五声音阶",
+    key: "G",
+    notes: "G B♭ C D F",
+    description: "布鲁斯风格常用音阶，沉稳有力的音色适合慢速Solo和情感表达。",
+    strings: [
+      [3, 6, null, null, null, null],
+      [3, 5, null, null, null, null],
+      [3, 5, null, null, null, null],
+      [3, 5, null, null, null, null],
+      [3, 6, null, null, null, null],
+      [3, 6, null, null, null, null],
+    ],
+    playNotes: [
+      { stringIndex: 5, fret: 3 }, { stringIndex: 5, fret: 6 },
+      { stringIndex: 4, fret: 3 }, { stringIndex: 4, fret: 5 },
+      { stringIndex: 3, fret: 3 }, { stringIndex: 3, fret: 5 },
+      { stringIndex: 2, fret: 3 }, { stringIndex: 2, fret: 5 },
+      { stringIndex: 1, fret: 3 }, { stringIndex: 1, fret: 6 },
+      { stringIndex: 0, fret: 3 }, { stringIndex: 0, fret: 6 },
+    ],
+  },
+  {
+    name: "B小调五声音阶",
+    key: "B",
+    notes: "B D E F♯ A",
+    description: "第7把位音阶，音域较高，适合弹奏旋律感强的Solo段落。",
+    strings: [
+      [7, 10, null, null, null, null],
+      [7, 9, null, null, null, null],
+      [7, 9, null, null, null, null],
+      [7, 9, null, null, null, null],
+      [7, 10, null, null, null, null],
+      [7, 10, null, null, null, null],
+    ],
+    playNotes: [
+      { stringIndex: 5, fret: 7 }, { stringIndex: 5, fret: 10 },
+      { stringIndex: 4, fret: 7 }, { stringIndex: 4, fret: 9 },
+      { stringIndex: 3, fret: 7 }, { stringIndex: 3, fret: 9 },
+      { stringIndex: 2, fret: 7 }, { stringIndex: 2, fret: 9 },
+      { stringIndex: 1, fret: 7 }, { stringIndex: 1, fret: 10 },
+      { stringIndex: 0, fret: 7 }, { stringIndex: 0, fret: 10 },
+    ],
+  },
+  {
+    name: "D小调五声音阶",
+    key: "D",
+    notes: "D F G A C",
+    description: "古典与金属风格常用音阶，阴暗厚重的色彩，适合速弹和力量感Riff。",
+    strings: [
+      [10, 13, null, null, null, null],
+      [10, 12, null, null, null, null],
+      [10, 12, null, null, null, null],
+      [10, 12, null, null, null, null],
+      [10, 12, null, null, null, null],
+      [10, 13, null, null, null, null],
+    ],
+    playNotes: [
+      { stringIndex: 5, fret: 10 }, { stringIndex: 5, fret: 13 },
+      { stringIndex: 4, fret: 10 }, { stringIndex: 4, fret: 12 },
+      { stringIndex: 3, fret: 10 }, { stringIndex: 3, fret: 12 },
+      { stringIndex: 2, fret: 10 }, { stringIndex: 2, fret: 12 },
+      { stringIndex: 1, fret: 10 }, { stringIndex: 1, fret: 12 },
+      { stringIndex: 0, fret: 10 }, { stringIndex: 0, fret: 13 },
+    ],
+  },
+]
 
 export const PracticeView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ToolTab>("metronome")
   const [selectedChord, setSelectedChord] = useState(0)
-  const { playChord, playString } = useChordPlayer()
+  const [selectedScale, setSelectedScale] = useState(0)
+  const { playChord, playString, playScale } = useChordPlayer()
 
   const handleSelectChord = (index: number) => {
     setSelectedChord(index)
@@ -139,36 +251,63 @@ export const PracticeView: React.FC = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm md:text-base flex items-center gap-2">
               <Guitar className="w-4 h-4 text-guitar-amber" />
-              {scalePattern.name}
+              小调五声音阶
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 md:space-y-6 pt-0">
+            {/* Scale selector */}
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+              {scales.map((scale, i) => (
+                <button
+                  key={scale.key}
+                  className={cn(
+                    "shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition-all active:scale-95",
+                    selectedScale === i
+                      ? "bg-guitar-amber text-guitar-dark"
+                      : "bg-secondary text-muted-foreground"
+                  )}
+                  onClick={() => setSelectedScale(i)}
+                >
+                  {scale.key}小调
+                </button>
+              ))}
+            </div>
+
+            {/* Current scale info */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-base md:text-lg font-bold">{scales[selectedScale].name}</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-guitar-amber/30 text-guitar-amber hover:bg-guitar-amber/10 gap-1.5"
+                onClick={() => playScale(scales[selectedScale].playNotes)}
+              >
+                <Play className="w-4 h-4" />
+                播放音阶
+              </Button>
+            </div>
+
+            {/* Tablature */}
             <div className="bg-secondary/50 rounded-lg p-3 md:p-6 overflow-x-auto">
               <Tablature
-                strings={[
-                  [5, 8, null, null, null, null],
-                  [5, 7, null, null, null, null],
-                  [5, 7, null, null, null, null],
-                  [5, 7, null, null, null, null],
-                  [5, 8, null, null, null, null],
-                  [5, 8, null, null, null, null],
-                ]}
+                strings={scales[selectedScale].strings}
                 className="min-w-[300px]"
               />
             </div>
+
+            {/* Scale details */}
             <div className="grid grid-cols-2 gap-3 md:gap-4 text-sm">
               <div className="bg-secondary/30 rounded-lg p-3 md:p-4">
                 <p className="text-muted-foreground mb-1 text-xs md:text-sm">根音</p>
-                <p className="text-base md:text-lg font-bold text-guitar-amber">A</p>
+                <p className="text-base md:text-lg font-bold text-guitar-amber">{scales[selectedScale].key}</p>
               </div>
               <div className="bg-secondary/30 rounded-lg p-3 md:p-4">
                 <p className="text-muted-foreground mb-1 text-xs md:text-sm">构成音</p>
-                <p className="text-base md:text-lg font-bold">A C D E G</p>
+                <p className="text-base md:text-lg font-bold">{scales[selectedScale].notes}</p>
               </div>
             </div>
             <p className="text-xs md:text-sm text-muted-foreground">
-              五声音阶省略了4级和7级音，不容易弹错，是摇滚、布鲁斯和流行Solo的基础。
-              建议从慢速开始，确保每个音都清晰饱满。
+              {scales[selectedScale].description}
             </p>
           </CardContent>
         </Card>
