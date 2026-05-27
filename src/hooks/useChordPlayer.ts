@@ -1,4 +1,5 @@
 import { useRef, useCallback } from "react"
+import { unlockIOSAudio, ensureSpeakerOutput } from "@/lib/iosAudioUnlock"
 
 // Standard guitar tuning frequencies (open strings)
 const OPEN_STRING_FREQS = [82.41, 110.0, 146.83, 196.0, 246.94, 329.63]
@@ -49,19 +50,18 @@ function playPluckedString(
 export function useChordPlayer() {
   const audioCtxRef = useRef<AudioContext | null>(null)
 
-  const getAudioContext = useCallback(() => {
+  const getAudioContext = useCallback(async () => {
+    await unlockIOSAudio()
     if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
       audioCtxRef.current = new AudioContext()
     }
-    if (audioCtxRef.current.state === "suspended") {
-      audioCtxRef.current.resume()
-    }
+    ensureSpeakerOutput(audioCtxRef.current)
     return audioCtxRef.current
   }, [])
 
   const playChord = useCallback(
-    (positions: (number | null)[], strumDelay: number = 0.04) => {
-      const ctx = getAudioContext()
+    async (positions: (number | null)[], strumDelay: number = 0.04) => {
+      const ctx = await getAudioContext()
 
       // Create a compressor for cleaner mix
       const compressor = ctx.createDynamicsCompressor()
@@ -111,10 +111,10 @@ export function useChordPlayer() {
   )
 
   const playString = useCallback(
-    (stringIndex: number, fret: number | null) => {
+    async (stringIndex: number, fret: number | null) => {
       if (fret === null || stringIndex < 0 || stringIndex > 5) return
 
-      const ctx = getAudioContext()
+      const ctx = await getAudioContext()
       const gainNode = ctx.createGain()
       gainNode.gain.setValueAtTime(0.5, ctx.currentTime)
       gainNode.connect(ctx.destination)
@@ -128,10 +128,10 @@ export function useChordPlayer() {
   )
 
   const playScale = useCallback(
-    (notes: { stringIndex: number; fret: number }[], noteInterval: number = 0.35) => {
+    async (notes: { stringIndex: number; fret: number }[], noteInterval: number = 0.35) => {
       if (notes.length === 0) return
 
-      const ctx = getAudioContext()
+      const ctx = await getAudioContext()
       const gainNode = ctx.createGain()
       gainNode.gain.setValueAtTime(0.5, ctx.currentTime)
       gainNode.connect(ctx.destination)

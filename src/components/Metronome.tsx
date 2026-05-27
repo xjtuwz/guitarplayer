@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { cn } from "@/lib/utils"
+import { unlockIOSAudio } from "@/lib/iosAudioUnlock"
 import { Play, Pause, Plus, Minus } from "lucide-react"
 
 interface MetronomeProps {
@@ -19,9 +20,13 @@ export const Metronome: React.FC<MetronomeProps> = ({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const playClick = useCallback(
-    (isAccent: boolean) => {
+    async (isAccent: boolean) => {
+      await unlockIOSAudio()
       if (!audioCtxRef.current) {
         audioCtxRef.current = new AudioContext()
+      }
+      if (audioCtxRef.current.state === "suspended") {
+        audioCtxRef.current.resume()
       }
       const ctx = audioCtxRef.current
       const osc = ctx.createOscillator()
