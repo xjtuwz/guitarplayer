@@ -11,6 +11,10 @@ import { Clock, Music, AudioLines, Guitar, Activity, Volume2, Play } from "lucid
 
 type ToolTab = "metronome" | "chords" | "scales" | "pitch"
 
+interface PracticeViewProps {
+  soundEnabled?: boolean
+}
+
 const commonChords = [
   { name: "C", positions: [null, 3, 2, 0, 1, 0] as (number | null)[] },
   { name: "G", positions: [3, 2, 0, 0, 0, 3] as (number | null)[] },
@@ -145,7 +149,7 @@ const scales: ScaleConfig[] = [
   },
 ]
 
-export const PracticeView: React.FC = () => {
+export const PracticeView: React.FC<PracticeViewProps> = ({ soundEnabled = true }) => {
   const [activeTab, setActiveTab] = useState<ToolTab>("metronome")
   const [selectedChord, setSelectedChord] = useState(0)
   const [selectedScale, setSelectedScale] = useState(0)
@@ -153,7 +157,7 @@ export const PracticeView: React.FC = () => {
 
   const handleSelectChord = (index: number) => {
     setSelectedChord(index)
-    playChord(commonChords[index].positions)
+    if (soundEnabled) playChord(commonChords[index].positions)
   }
 
   const tabs: { id: ToolTab; label: string; icon: React.ElementType }[] = [
@@ -229,14 +233,14 @@ export const PracticeView: React.FC = () => {
               chordName={commonChords[selectedChord].name}
               positions={commonChords[selectedChord].positions}
               barre={commonChords[selectedChord].barre}
-              onStringClick={playString}
+              onStringClick={soundEnabled ? playString : undefined}
               className="py-6 md:py-8"
             />
             <Button
               variant="outline"
               size="sm"
               className="mb-4 border-guitar-amber/30 text-guitar-amber hover:bg-guitar-amber/10 gap-1.5"
-              onClick={() => playChord(commonChords[selectedChord].positions)}
+              onClick={() => soundEnabled && playChord(commonChords[selectedChord].positions)}
             >
               <Volume2 className="w-4 h-4" />
               试听和弦
@@ -280,7 +284,7 @@ export const PracticeView: React.FC = () => {
                 variant="outline"
                 size="sm"
                 className="border-guitar-amber/30 text-guitar-amber hover:bg-guitar-amber/10 gap-1.5"
-                onClick={() => playScale(scales[selectedScale].playNotes)}
+                onClick={() => soundEnabled && playScale(scales[selectedScale].playNotes)}
               >
                 <Play className="w-4 h-4" />
                 播放音阶

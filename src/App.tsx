@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
+import { cn } from "@/lib/utils"
 import { MobileNav } from "@/components/MobileNav"
 import { HomeView } from "@/components/HomeView"
 import { CourseCard } from "@/components/CourseCard"
@@ -15,6 +16,22 @@ function App() {
   const [currentView, setCurrentView] = useState<View>("home")
   const [courses, setCourses] = useState<Course[]>(initialCourses)
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null)
+  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("soundEnabled") !== "false")
+  const [highContrast, setHighContrast] = useState(() => localStorage.getItem("highContrast") === "true")
+
+  // High contrast mode: toggle CSS class on document
+  useEffect(() => {
+    if (highContrast) {
+      document.documentElement.classList.add("high-contrast")
+    } else {
+      document.documentElement.classList.remove("high-contrast")
+    }
+    localStorage.setItem("highContrast", String(highContrast))
+  }, [highContrast])
+
+  useEffect(() => {
+    localStorage.setItem("soundEnabled", String(soundEnabled))
+  }, [soundEnabled])
 
   const progress = useMemo(() => {
     const completed = courses.filter((c) => c.completed).length
@@ -123,7 +140,7 @@ function App() {
           </div>
         )
       case "practice":
-        return <PracticeView />
+        return <PracticeView soundEnabled={soundEnabled} />
       case "achievements":
         return (
           <div className="space-y-6 animate-fade-in">
@@ -221,9 +238,21 @@ function App() {
                       启用练习时的音效反馈
                     </p>
                   </div>
-                  <div className="w-11 h-6 bg-guitar-amber rounded-full relative cursor-pointer">
-                    <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5 shadow" />
-                  </div>
+                  <button
+                    className={cn(
+                      "w-11 h-6 rounded-full relative cursor-pointer transition-colors duration-200",
+                      soundEnabled ? "bg-guitar-amber" : "bg-muted"
+                    )}
+                    onClick={() => setSoundEnabled(!soundEnabled)}
+                    aria-label="切换音效"
+                  >
+                    <div
+                      className={cn(
+                        "w-5 h-5 bg-white rounded-full absolute top-0.5 shadow transition-all duration-200",
+                        soundEnabled ? "right-0.5" : "left-0.5"
+                      )}
+                    />
+                  </button>
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <div>
@@ -232,9 +261,21 @@ function App() {
                       提高界面对比度以便阅读
                     </p>
                   </div>
-                  <div className="w-11 h-6 bg-muted rounded-full relative cursor-pointer">
-                    <div className="w-5 h-5 bg-white rounded-full absolute left-0.5 top-0.5 shadow" />
-                  </div>
+                  <button
+                    className={cn(
+                      "w-11 h-6 rounded-full relative cursor-pointer transition-colors duration-200",
+                      highContrast ? "bg-guitar-amber" : "bg-muted"
+                    )}
+                    onClick={() => setHighContrast(!highContrast)}
+                    aria-label="切换高对比度"
+                  >
+                    <div
+                      className={cn(
+                        "w-5 h-5 bg-white rounded-full absolute top-0.5 shadow transition-all duration-200",
+                        highContrast ? "right-0.5" : "left-0.5"
+                      )}
+                    />
+                  </button>
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <div>
