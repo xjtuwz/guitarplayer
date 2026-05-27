@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { courses } from "@/data/courses"
 import { Guitar, ArrowRight, Flame, Target, Zap } from "lucide-react"
 
+import guitarHeroImg from "@/../public/images/guitar-hero.png"
+import guitarLearningImg from "@/../public/images/guitar-learning.png"
+
 interface HomeViewProps {
   onStartLearning: () => void
   progress: number
@@ -22,7 +25,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
       {/* Hero */}
       <div className="relative rounded-2xl overflow-hidden -mx-4 md:mx-0">
         <img
-          src="/images/guitar-hero.png"
+          src={guitarHeroImg}
           alt="电吉他"
           className="w-full h-56 md:h-72 object-cover"
         />
@@ -124,7 +127,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
       {/* Learning Image */}
       <div className="rounded-2xl overflow-hidden -mx-4 md:mx-0">
         <img
-          src="/images/guitar-learning.png"
+          src={guitarLearningImg}
           alt="吉他学习"
           className="w-full h-36 md:h-48 object-cover opacity-80"
         />
