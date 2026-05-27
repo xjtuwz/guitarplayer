@@ -5,6 +5,7 @@ interface ChordDiagramProps {
   chordName: string
   positions: (number | null)[]
   barre?: { fret: number; from: number; to: number }
+  onStringClick?: (stringIndex: number, fret: number | null) => void
   className?: string
 }
 
@@ -14,6 +15,7 @@ export const ChordDiagram: React.FC<ChordDiagramProps> = ({
   chordName,
   positions,
   barre,
+  onStringClick,
   className,
 }) => {
   const [activeString, setActiveString] = useState<number | null>(null)
@@ -141,7 +143,10 @@ export const ChordDiagram: React.FC<ChordDiagramProps> = ({
                   r="11"
                   fill={activeString === i ? "hsl(var(--guitar-amber))" : "hsl(var(--guitar-red))"}
                   className="cursor-pointer transition-all duration-200"
-                  onClick={() => setActiveString(activeString === i ? null : i)}
+                  onClick={() => {
+                    setActiveString(activeString === i ? null : i)
+                    onStringClick?.(i, fret)
+                  }}
                   style={{ filter: activeString === i ? "brightness(1.3)" : "none" }}
                 />
                 <text

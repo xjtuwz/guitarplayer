@@ -6,7 +6,8 @@ import { Metronome } from "./Metronome"
 import { ChordDiagram } from "./ChordDiagram"
 import { Tablature } from "./Tablature"
 import { PitchPractice } from "./PitchPractice"
-import { Clock, Music, AudioLines, Guitar, Activity } from "lucide-react"
+import { useChordPlayer } from "@/hooks/useChordPlayer"
+import { Clock, Music, AudioLines, Guitar, Activity, Volume2 } from "lucide-react"
 
 type ToolTab = "metronome" | "chords" | "scales" | "pitch"
 
@@ -36,6 +37,12 @@ const scalePattern = {
 export const PracticeView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ToolTab>("metronome")
   const [selectedChord, setSelectedChord] = useState(0)
+  const { playChord, playString } = useChordPlayer()
+
+  const handleSelectChord = (index: number) => {
+    setSelectedChord(index)
+    playChord(commonChords[index].positions)
+  }
 
   const tabs: { id: ToolTab; label: string; icon: React.ElementType }[] = [
     { id: "metronome", label: "节拍器", icon: Clock },
@@ -96,7 +103,7 @@ export const PracticeView: React.FC = () => {
                         ? "bg-guitar-amber text-guitar-dark"
                         : "text-foreground"
                     )}
-                    onClick={() => setSelectedChord(i)}
+                    onClick={() => handleSelectChord(i)}
                   >
                     {chord.name}
                   </Button>
@@ -105,13 +112,23 @@ export const PracticeView: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="order-1 lg:order-2 lg:col-span-2 flex items-center justify-center min-h-[320px] md:min-h-[400px]">
+          <Card className="order-1 lg:order-2 lg:col-span-2 flex flex-col items-center justify-center min-h-[320px] md:min-h-[400px]">
             <ChordDiagram
               chordName={commonChords[selectedChord].name}
               positions={commonChords[selectedChord].positions}
               barre={commonChords[selectedChord].barre}
+              onStringClick={playString}
               className="py-6 md:py-8"
             />
+            <Button
+              variant="outline"
+              size="sm"
+              className="mb-4 border-guitar-amber/30 text-guitar-amber hover:bg-guitar-amber/10 gap-1.5"
+              onClick={() => playChord(commonChords[selectedChord].positions)}
+            >
+              <Volume2 className="w-4 h-4" />
+              试听和弦
+            </Button>
           </Card>
         </div>
       )}
