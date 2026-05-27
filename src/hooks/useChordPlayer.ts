@@ -1,5 +1,5 @@
 import { useRef, useCallback } from "react"
-import { unlockIOSAudio, ensureSpeakerOutput } from "@/lib/iosAudioUnlock"
+import { unlockIOSAudio, createSpeakerAudioContext, ensureSpeakerOutput } from "@/lib/iosAudioUnlock"
 
 // Standard guitar tuning frequencies (open strings)
 const OPEN_STRING_FREQS = [82.41, 110.0, 146.83, 196.0, 246.94, 329.63]
@@ -53,7 +53,7 @@ export function useChordPlayer() {
   const getAudioContext = useCallback(async () => {
     await unlockIOSAudio()
     if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
-      audioCtxRef.current = new AudioContext()
+      audioCtxRef.current = createSpeakerAudioContext()
     }
     ensureSpeakerOutput(audioCtxRef.current)
     return audioCtxRef.current

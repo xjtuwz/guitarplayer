@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import { unlockIOSAudio } from "@/lib/iosAudioUnlock"
 import { MobileNav } from "@/components/MobileNav"
 import { HomeView } from "@/components/HomeView"
 import { CourseCard } from "@/components/CourseCard"
@@ -32,6 +33,21 @@ function App() {
   useEffect(() => {
     localStorage.setItem("soundEnabled", String(soundEnabled))
   }, [soundEnabled])
+
+  // Global iOS audio unlock on first user interaction
+  useEffect(() => {
+    const unlock = () => {
+      unlockIOSAudio()
+      document.removeEventListener("touchstart", unlock)
+      document.removeEventListener("click", unlock)
+    }
+    document.addEventListener("touchstart", unlock, { once: true })
+    document.addEventListener("click", unlock, { once: true })
+    return () => {
+      document.removeEventListener("touchstart", unlock)
+      document.removeEventListener("click", unlock)
+    }
+  }, [])
 
   const progress = useMemo(() => {
     const completed = courses.filter((c) => c.completed).length
