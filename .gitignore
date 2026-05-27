@@ -5,3 +5,4 @@ dist-ssr
 .DS_Store
 .qoder/
 vibe_images/
+tsconfig.app.tsbuildinfo
