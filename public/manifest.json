@@ -1,0 +1,21 @@
+{
+  "name": "小米的电吉他学习之旅",
+  "short_name": "吉他学习",
+  "description": "交互式电吉他学习平台，包含六线谱显示、和弦图、节拍器、音准监控和系统化的12周课程。",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#D4940D",
+  "icons": [
+    {
+      "src": "pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
