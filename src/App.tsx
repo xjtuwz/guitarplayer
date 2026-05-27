@@ -87,6 +87,11 @@ function App() {
     }
   }, [courses])
 
+  const handleBrowseCourses = useCallback(() => {
+    setCurrentView("courses")
+    setSelectedCourseId(null)
+  }, [])
+
   const handleViewChange = useCallback((view: View) => {
     setCurrentView(view)
     if (view === "courses") {
@@ -107,6 +112,7 @@ function App() {
         return (
           <HomeView
             onStartLearning={handleStartLearning}
+            onBrowseCourses={handleBrowseCourses}
             progress={progress}
             completedCount={completedCount}
           />

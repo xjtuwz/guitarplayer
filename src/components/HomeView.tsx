@@ -9,12 +9,14 @@ import guitarLearningImg from "@/../public/images/guitar-learning.png"
 
 interface HomeViewProps {
   onStartLearning: () => void
+  onBrowseCourses: () => void
   progress: number
   completedCount: number
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
   onStartLearning,
+  onBrowseCourses,
   progress,
   completedCount,
 }) => {
@@ -50,7 +52,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               size="default"
               variant="outline"
               className="border-white/20 text-white hover:bg-white/10 h-10 md:h-11"
-              onClick={onStartLearning}
+              onClick={onBrowseCourses}
             >
               浏览课程
             </Button>
