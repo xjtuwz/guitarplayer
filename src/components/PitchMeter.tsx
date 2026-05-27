@@ -17,7 +17,7 @@ export const PitchMeter: React.FC<PitchMeterProps> = ({
 }) => {
   const hasTarget = targetNote !== undefined && targetOctave !== undefined
 
-  let comparison: { match: boolean; diffCents: number; direction: "none" | "in-tune" | "sharp" | "flat" } = { match: false, diffCents: 0, direction: "none" }
+  let comparison: { match: boolean; diffCents: number; direction: "none" | "in-tune" | "sharp" | "flat" } = { match: false, diffCents: 0, direction: "none" as const }
 
   if (hasTarget && pitchData) {
     const targetFreq =
