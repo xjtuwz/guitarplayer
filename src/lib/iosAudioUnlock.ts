@@ -2,7 +2,10 @@
 // This module unlocks the speaker output by keeping a looping HTMLAudioElement
 // alive, which forces the iOS audio session category to "playback" (speaker).
 
-let keeperAudio: HTMLAudioElement | null = null
+// We must keep a reference to the audio element to prevent garbage collection.
+// If the element is GC'd, iOS reverts the audio session to earpiece routing.
+// Exported to satisfy noUnusedLocals — the GC root "reads" it.
+export let keeperAudio: HTMLAudioElement | null = null
 let unlocked = false
 
 // Generate a longer silent WAV (1 second) to give iOS time to switch audio route
