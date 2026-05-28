@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Tablature } from "./Tablature"
 import { ChordDiagram } from "./ChordDiagram"
 import { Metronome } from "./Metronome"
-import type { Course, Exercise, TabContent } from "@/data/courses"
+import type { Course, Exercise, TabContent, TechniqueContent, ScaleContent } from "@/data/courses"
 import { CheckCircle2, Lock, BookOpen, Dumbbell, ArrowLeft } from "lucide-react"
 
 interface CourseDetailProps {
@@ -47,6 +47,21 @@ const ExerciseRenderer: React.FC<{ exercise: Exercise }> = ({ exercise }) => {
           />
         </div>
       )
+    case "scale":
+      const scale = exercise.content as ScaleContent
+      return (
+        <div className="bg-secondary/50 rounded-lg p-3 md:p-4 overflow-x-auto">
+          <div className="text-center mb-2">
+            <span className="text-xs text-muted-foreground">{scale.scaleName}</span>
+            <span className="text-xs text-muted-foreground mx-1">·</span>
+            <span className="text-xs text-guitar-amber font-medium">{scale.key}</span>
+          </div>
+          <Tablature
+            strings={scale.strings.map(row => row.map(n => n as number | null))}
+            className="min-w-[280px]"
+          />
+        </div>
+      )
     case "rhythm":
       const rhythm = exercise.content as {
         pattern: string[]
@@ -74,6 +89,23 @@ const ExerciseRenderer: React.FC<{ exercise: Exercise }> = ({ exercise }) => {
             {rhythm.description} · {rhythm.bpm} BPM
           </p>
           <Metronome initialBpm={rhythm.bpm} />
+        </div>
+      )
+    case "technique":
+      const tech = exercise.content as TechniqueContent
+      return (
+        <div className="bg-secondary/50 rounded-lg p-4 space-y-3">
+          <p className="text-sm text-foreground/80">{tech.description}</p>
+          <ol className="space-y-2">
+            {tech.steps.map((step, i) => (
+              <li key={i} className="flex gap-2.5 text-sm">
+                <span className="w-5 h-5 rounded-full bg-guitar-amber/20 text-guitar-amber text-xs flex items-center justify-center font-bold shrink-0 mt-0.5">
+                  {i + 1}
+                </span>
+                <span className="text-foreground/80 leading-relaxed">{step}</span>
+              </li>
+            ))}
+          </ol>
         </div>
       )
     default:
