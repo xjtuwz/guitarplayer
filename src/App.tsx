@@ -9,7 +9,7 @@ import { PracticeView } from "@/components/PracticeView"
 import { courses as initialCourses } from "@/data/courses"
 import type { Course } from "@/data/courses"
 import { Card, CardContent } from "@/components/ui/card"
-import { CheckCircle2, Lock, Trophy, Flame, Star, Guitar } from "lucide-react"
+import { CheckCircle2, Lock, Trophy, Flame, Star, Guitar, RotateCw } from "lucide-react"
 
 export type View = "home" | "courses" | "practice" | "achievements" | "settings"
 
@@ -339,8 +339,15 @@ function App() {
             </div>
             <h1 className="font-bold text-base tracking-tight"><span className="text-guitar-amber">小米</span>的电吉他学习之旅</h1>
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {progress}%
+            <button
+              className="p-1 rounded-md hover:bg-secondary active:bg-secondary/80 transition-colors"
+              onClick={() => window.location.reload()}
+              aria-label="刷新页面"
+            >
+              <RotateCw className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </header>
