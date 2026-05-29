@@ -1,113 +1,318 @@
-import React from "react"
+import React, { useState, useRef, useCallback, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tablature } from "./Tablature"
 import { ChordDiagram } from "./ChordDiagram"
 import { Metronome } from "./Metronome"
-import type { Course, Exercise, TabContent, TechniqueContent, ScaleContent } from "@/data/courses"
-import { CheckCircle2, Lock, BookOpen, Dumbbell, ArrowLeft } from "lucide-react"
+import { useChordPlayer } from "@/hooks/useChordPlayer"
+import type { Course, Exercise, TabContent, TechniqueContent, ScaleContent, ChordContent } from "@/data/courses"
+import { CheckCircle2, Lock, BookOpen, Dumbbell, ArrowLeft, Play, Square } from "lucide-react"
 
-interface CourseDetailProps {
-  course: Course
-  onBack: () => void
-  onComplete: (id: number) => void
+// Extract playable notes from tab/scale data (column by column, left to right)
+function extractTabNotes(strings: (number | null)[][]): { stringIndex: number; fret: number; colIndex: number }[] {
+  const notes: { stringIndex: number; fret: number; colIndex: number }[] = []
+  if (strings.length === 0) return notes
+  const maxCols = Math.max(...strings.map(s => s.length))
+
+  for (let col = 0; col < maxCols; col++) {
+    const colNotes: { stringIndex: number; fret: number; colIndex: number }[] = []
+    for (let row = 0; row < strings.length; row++) {
+      const fret = strings[row]?.[col]
+      if (fret !== null && fret !== undefined) {
+        colNotes.push({ stringIndex: row, fret, colIndex: col })
+      }
+    }
+    // If a column has multiple notes (chord), add them all; they'll play as one beat
+    notes.push(...colNotes)
+  }
+  return notes
 }
 
+// Playback hook for tab/scale exercises with highlight tracking
+function useTabPlayback(strings: (number | null)[][], bpm?: number) {
+  const { playScale } = useChordPlayer()
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [highlightCol, setHighlightCol] = useState<number | null>(null)
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  const stop = useCallback(() => {
+    timersRef.current.forEach(t => clearTimeout(t))
+    timersRef.current = []
+    setIsPlaying(false)
+    setHighlightCol(null)
+  }, [])
+
+  useEffect(() => {
+    return () => { timersRef.current.forEach(t => clearTimeout(t)) }
+  }, [])
+
+  const play = useCallback(async () => {
+    stop()
+    const notes = extractTabNotes(strings)
+    if (notes.length === 0) return
+
+    setIsPlaying(true)
+    const interval = bpm ? (60 / bpm) * 1000 : 400 // ms per beat
+
+    // Group notes by column index to determine timing
+    const colGroups = new Map<number, { stringIndex: number; fret: number }[]>()
+    notes.forEach(n => {
+      if (!colGroups.has(n.colIndex)) colGroups.set(n.colIndex, [])
+      colGroups.get(n.colIndex)!.push({ stringIndex: n.stringIndex, fret: n.fret })
+    })
+
+    const sortedCols = Array.from(colGroups.keys()).sort((a, b) => a - b)
+
+    // Play scale-like (sequential notes) — but also highlight each column
+    const scaleNotes = notes
+      .sort((a, b) => a.colIndex === b.colIndex ? a.stringIndex - b.stringIndex : a.colIndex - b.colIndex)
+      .map(n => ({ stringIndex: n.stringIndex, fret: n.fret }))
+
+    playScale(scaleNotes, interval / 1000)
+
+    // Schedule highlights for each column
+    sortedCols.forEach((col, i) => {
+      const timer = setTimeout(() => {
+        setHighlightCol(col)
+      }, i * interval)
+      timersRef.current.push(timer)
+    })
+
+    // End playback after last note
+    const endTimer = setTimeout(() => {
+      setIsPlaying(false)
+      setHighlightCol(null)
+    }, (sortedCols.length) * interval + 500)
+    timersRef.current.push(endTimer)
+  }, [strings, bpm, playScale, stop])
+
+  return { isPlaying, highlightCol, play, stop }
+}
+
+// Playback hook for chord exercises
+function useChordPlayback(positions: (number | null)[]) {
+  const { playChord } = useChordPlayer()
+  const [isPlaying, setIsPlaying] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [])
+
+  const play = useCallback(async () => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    setIsPlaying(true)
+    await playChord(positions)
+    timerRef.current = setTimeout(() => setIsPlaying(false), 2000)
+  }, [positions, playChord])
+
+  const stop = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    setIsPlaying(false)
+  }, [])
+
+  return { isPlaying, play, stop }
+}
+
+// Play button component
+const PlayButton: React.FC<{ isPlaying: boolean; onPlay: () => void; onStop: () => void; label?: string }> = ({
+  isPlaying, onPlay, onStop, label = "播放"
+}) => (
+  <button
+    onClick={isPlaying ? onStop : onPlay}
+    className={cn(
+      "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
+      isPlaying
+        ? "bg-guitar-red/20 text-guitar-red border border-guitar-red/30"
+        : "bg-guitar-amber/20 text-guitar-amber border border-guitar-amber/30 hover:bg-guitar-amber/30"
+    )}
+  >
+    {isPlaying ? (
+      <>
+        <Square className="w-3 h-3 fill-current" />
+        停止
+      </>
+    ) : (
+      <>
+        <Play className="w-3 h-3 fill-current" />
+        {label}
+      </>
+    )}
+  </button>
+)
+
+// --- Exercise Renderers ---
+
+const TabExercise: React.FC<{ exercise: Exercise }> = ({ exercise }) => {
+  const content = exercise.content as TabContent
+  const { isPlaying, highlightCol, play, stop } = useTabPlayback(content.strings, content.bpm)
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-secondary/50 rounded-lg p-3 md:p-4 overflow-x-auto">
+        <Tablature
+          strings={content.strings}
+          highlightCol={highlightCol}
+          className="min-w-[280px]"
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <PlayButton isPlaying={isPlaying} onPlay={play} onStop={stop} />
+        {content.bpm && (
+          <p className="text-xs text-muted-foreground">
+            建议速度: {content.bpm} BPM
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const ChordExercise: React.FC<{ exercise: Exercise }> = ({ exercise }) => {
+  const chord = exercise.content as ChordContent
+  const { isPlaying, play, stop } = useChordPlayback(chord.positions)
+
+  return (
+    <div className="space-y-2">
+      <div className="bg-secondary/50 rounded-lg p-4">
+        <ChordDiagram
+          chordName={chord.chordName}
+          positions={chord.positions}
+          barre={chord.barre}
+        />
+      </div>
+      <PlayButton isPlaying={isPlaying} onPlay={play} onStop={stop} label="试听和弦" />
+    </div>
+  )
+}
+
+const ScaleExercise: React.FC<{ exercise: Exercise }> = ({ exercise }) => {
+  const scale = exercise.content as ScaleContent
+  const tabStrings = scale.strings.map(row => row.map(n => n as number | null))
+  const { isPlaying, highlightCol, play, stop } = useTabPlayback(tabStrings, 80)
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-secondary/50 rounded-lg p-3 md:p-4 overflow-x-auto">
+        <div className="text-center mb-2">
+          <span className="text-xs text-muted-foreground">{scale.scaleName}</span>
+          <span className="text-xs text-muted-foreground mx-1">·</span>
+          <span className="text-xs text-guitar-amber font-medium">{scale.key}</span>
+        </div>
+        <Tablature
+          strings={tabStrings}
+          highlightCol={highlightCol}
+          className="min-w-[280px]"
+        />
+      </div>
+      <PlayButton isPlaying={isPlaying} onPlay={play} onStop={stop} label="播放音阶" />
+    </div>
+  )
+}
+
+const RhythmExercise: React.FC<{ exercise: Exercise }> = ({ exercise }) => {
+  const rhythm = exercise.content as { pattern: string[]; bpm: number; description: string }
+  const [highlightBeat, setHighlightBeat] = useState<number | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const { playChord } = useChordPlayer()
+
+  useEffect(() => {
+    return () => { timersRef.current.forEach(t => clearTimeout(t)) }
+  }, [])
+
+  const play = useCallback(async () => {
+    timersRef.current.forEach(t => clearTimeout(t))
+    setIsPlaying(true)
+
+    const interval = (60 / rhythm.bpm) * 1000
+    // Play a simple Em strum pattern
+    const emPositions: (number | null)[] = [0, 2, 2, 0, 0, 0]
+
+    rhythm.pattern.forEach((_, i) => {
+      const timer = setTimeout(() => {
+        setHighlightBeat(i)
+        playChord(emPositions, 0.02)
+      }, i * interval)
+      timersRef.current.push(timer)
+    })
+
+    const endTimer = setTimeout(() => {
+      setIsPlaying(false)
+      setHighlightBeat(null)
+    }, rhythm.pattern.length * interval + 300)
+    timersRef.current.push(endTimer)
+  }, [rhythm, playChord])
+
+  const stop = useCallback(() => {
+    timersRef.current.forEach(t => clearTimeout(t))
+    setIsPlaying(false)
+    setHighlightBeat(null)
+  }, [])
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-center gap-2 flex-wrap">
+        {rhythm.pattern.map((dir, i) => (
+          <div
+            key={i}
+            className={cn(
+              "w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center text-xs md:text-sm font-bold transition-all duration-150",
+              highlightBeat === i
+                ? "bg-guitar-amber text-guitar-dark scale-110 shadow-lg"
+                : dir === "下"
+                  ? "bg-guitar-amber/20 text-guitar-amber border border-guitar-amber/30"
+                  : "bg-guitar-red/20 text-guitar-red border border-guitar-red/30"
+            )}
+          >
+            {dir}
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between">
+        <PlayButton isPlaying={isPlaying} onPlay={play} onStop={stop} label="播放节奏" />
+        <p className="text-xs md:text-sm text-muted-foreground">
+          {rhythm.description} · {rhythm.bpm} BPM
+        </p>
+      </div>
+      <Metronome initialBpm={rhythm.bpm} />
+    </div>
+  )
+}
+
+const TechniqueExercise: React.FC<{ exercise: Exercise }> = ({ exercise }) => {
+  const tech = exercise.content as TechniqueContent
+  return (
+    <div className="bg-secondary/50 rounded-lg p-4 space-y-3">
+      <p className="text-sm text-foreground/80">{tech.description}</p>
+      <ol className="space-y-2">
+        {tech.steps.map((step, i) => (
+          <li key={i} className="flex gap-2.5 text-sm">
+            <span className="w-5 h-5 rounded-full bg-guitar-amber/20 text-guitar-amber text-xs flex items-center justify-center font-bold shrink-0 mt-0.5">
+              {i + 1}
+            </span>
+            <span className="text-foreground/80 leading-relaxed">{step}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
+// Main Exercise Renderer
 const ExerciseRenderer: React.FC<{ exercise: Exercise }> = ({ exercise }) => {
   switch (exercise.type) {
     case "tab":
-      return (
-        <div className="space-y-3">
-          <div className="bg-secondary/50 rounded-lg p-3 md:p-4 overflow-x-auto">
-            <Tablature
-              strings={(exercise.content as TabContent).strings}
-              className="min-w-[280px]"
-            />
-          </div>
-          {(exercise.content as { bpm?: number }).bpm && (
-            <p className="text-xs text-muted-foreground text-center">
-              建议速度: {(exercise.content as { bpm?: number }).bpm} BPM
-            </p>
-          )}
-        </div>
-      )
+      return <TabExercise exercise={exercise} />
     case "chord":
-      const chord = exercise.content as {
-        chordName: string
-        positions: (number | null)[]
-        barre?: { fret: number; from: number; to: number }
-      }
-      return (
-        <div className="bg-secondary/50 rounded-lg p-4">
-          <ChordDiagram
-            chordName={chord.chordName}
-            positions={chord.positions}
-            barre={chord.barre}
-          />
-        </div>
-      )
+      return <ChordExercise exercise={exercise} />
     case "scale":
-      const scale = exercise.content as ScaleContent
-      return (
-        <div className="bg-secondary/50 rounded-lg p-3 md:p-4 overflow-x-auto">
-          <div className="text-center mb-2">
-            <span className="text-xs text-muted-foreground">{scale.scaleName}</span>
-            <span className="text-xs text-muted-foreground mx-1">·</span>
-            <span className="text-xs text-guitar-amber font-medium">{scale.key}</span>
-          </div>
-          <Tablature
-            strings={scale.strings.map(row => row.map(n => n as number | null))}
-            className="min-w-[280px]"
-          />
-        </div>
-      )
+      return <ScaleExercise exercise={exercise} />
     case "rhythm":
-      const rhythm = exercise.content as {
-        pattern: string[]
-        bpm: number
-        description: string
-      }
-      return (
-        <div className="space-y-4">
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            {rhythm.pattern.map((dir, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center text-xs md:text-sm font-bold",
-                  dir === "下"
-                    ? "bg-guitar-amber/20 text-guitar-amber border border-guitar-amber/30"
-                    : "bg-guitar-red/20 text-guitar-red border border-guitar-red/30"
-                )}
-              >
-                {dir}
-              </div>
-            ))}
-          </div>
-          <p className="text-xs md:text-sm text-muted-foreground text-center">
-            {rhythm.description} · {rhythm.bpm} BPM
-          </p>
-          <Metronome initialBpm={rhythm.bpm} />
-        </div>
-      )
+      return <RhythmExercise exercise={exercise} />
     case "technique":
-      const tech = exercise.content as TechniqueContent
-      return (
-        <div className="bg-secondary/50 rounded-lg p-4 space-y-3">
-          <p className="text-sm text-foreground/80">{tech.description}</p>
-          <ol className="space-y-2">
-            {tech.steps.map((step, i) => (
-              <li key={i} className="flex gap-2.5 text-sm">
-                <span className="w-5 h-5 rounded-full bg-guitar-amber/20 text-guitar-amber text-xs flex items-center justify-center font-bold shrink-0 mt-0.5">
-                  {i + 1}
-                </span>
-                <span className="text-foreground/80 leading-relaxed">{step}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )
+      return <TechniqueExercise exercise={exercise} />
     default:
       return (
         <div className="text-sm text-muted-foreground bg-secondary/50 rounded-lg p-4">
@@ -115,6 +320,13 @@ const ExerciseRenderer: React.FC<{ exercise: Exercise }> = ({ exercise }) => {
         </div>
       )
   }
+}
+
+// Course Detail Page
+interface CourseDetailProps {
+  course: Course
+  onBack: () => void
+  onComplete: (id: number) => void
 }
 
 export const CourseDetail: React.FC<CourseDetailProps> = ({

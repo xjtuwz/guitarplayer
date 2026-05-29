@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 interface TablatureProps {
   strings: (number | null)[][]
   className?: string
-  highlightFret?: number
+  highlightCol?: number | null
 }
 
 const STRING_LABELS = ["e", "B", "G", "D", "A", "E"]
@@ -12,7 +12,7 @@ const STRING_LABELS = ["e", "B", "G", "D", "A", "E"]
 export const Tablature: React.FC<TablatureProps> = ({
   strings,
   className,
-  highlightFret,
+  highlightCol = null,
 }) => {
   const maxCols = Math.max(...strings.map((s) => s.length))
 
@@ -33,9 +33,9 @@ export const Tablature: React.FC<TablatureProps> = ({
                         <div className="absolute inset-x-0 h-px bg-foreground/30" />
                         <span
                           className={cn(
-                            "relative z-10 text-sm font-mono font-bold px-1.5 py-0.5 rounded",
-                            highlightFret === fret
-                              ? "bg-guitar-amber text-guitar-dark"
+                            "relative z-10 text-sm font-mono font-bold px-1.5 py-0.5 rounded transition-colors duration-200",
+                            highlightCol === colIdx
+                              ? "bg-guitar-amber text-guitar-dark scale-110"
                               : "text-foreground bg-card"
                           )}
                         >
@@ -45,7 +45,16 @@ export const Tablature: React.FC<TablatureProps> = ({
                     ) : (
                       <div className="relative flex items-center justify-center w-10 h-8">
                         <div className="absolute inset-x-0 h-px bg-foreground/20" />
-                        <span className="relative z-10 text-sm font-mono text-muted-foreground">—</span>
+                        <span
+                          className={cn(
+                            "relative z-10 text-sm font-mono transition-colors duration-200",
+                            highlightCol === colIdx
+                              ? "text-guitar-amber font-bold"
+                              : "text-muted-foreground"
+                          )}
+                        >
+                          —
+                        </span>
                       </div>
                     )}
                     {colIdx < maxCols - 1 && (
